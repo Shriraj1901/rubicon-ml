@@ -4,6 +4,7 @@ from unittest.mock import patch
 import click
 from click.testing import CliRunner
 
+import rubicon_ml.viz.base
 from rubicon_ml.cli import cli
 
 
@@ -34,6 +35,14 @@ def test_cli(mock_get_project, mock_projects, mock_run_server, project_client):
         assert "`--project-name` will be a required option" in str(caught_warnings[1])
 
 
+def test_cli_port_not_an_integer():
+    runner = CliRunner()
+    result = runner.invoke(cli, ["ui", "--root-dir", "/path/to/root", "--port", "http"])
+
+    assert result.exit_code == 2
+    assert "'http' is not a valid integer" in result.output
+
+
 def _set_up_rubicon_project(project):
     NUM_EXPERIMENTS = 4
     for _ in range(NUM_EXPERIMENTS):
@@ -57,6 +66,31 @@ def _set_up_rubicon_project(project):
     project.log_artifact(name="p", data_bytes=b"p")
 
     return project
+
+
+@patch("dash.Dash.run")
+def test_cli_port(mock_dash_run, rubicon_local_filesystem_client_with_project, monkeypatch):
+    _, project = rubicon_local_filesystem_client_with_project
+    _set_up_rubicon_project(project=project)
+    monkeypatch.setattr("rubicon_ml.viz.base._next_available_port", 8050)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "ui",
+            "--root-dir",
+            project.repository.root_dir,
+            "--project-name",
+            project.name,
+            "--port",
+            "8051",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert mock_dash_run.call_args.kwargs["port"] == 8051
+    assert rubicon_ml.viz.base._next_available_port == 8052
 
 
 def test_search_cli_base(rubicon_local_filesystem_client_with_project):

@@ -48,7 +48,7 @@ def cli():
     "--host", "-h", type=click.STRING, help="The host to serve the dashboard on.", default=None
 )
 @click.option(
-    "--port", "-p", type=click.STRING, help="The port to serve the dashboard on.", default=None
+    "--port", "-p", type=click.INT, help="The port to serve the dashboard on.", default=None
 )
 @click.option(
     "--debug", "-d", type=click.BOOL, help="Whether or not to run in debug mode.", default=False
